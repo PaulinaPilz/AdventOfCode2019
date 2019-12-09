@@ -13,10 +13,11 @@ public class Task1Test {
         // given
         Task1 tested = new Task1();
         List<String> masses = List.of("12", "14", "1969", "100756");
+        long expectedSumOfMass = 34241;
 
         //when
         long sumOfMass = tested.sumMasses(masses);
 
-        assertEquals(34241, sumOfMass);
+        assertEquals(expectedSumOfMass, sumOfMass);
     }
 }

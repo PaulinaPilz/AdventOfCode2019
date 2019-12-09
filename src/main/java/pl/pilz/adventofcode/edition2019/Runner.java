@@ -34,7 +34,7 @@ public class Runner {
 
             log.info(task1.sumMasses(massesList));
         } catch (IOException | URISyntaxException e) {
-            log.info("Wrong file modules");
+            log.error("Wrong file modules");
         }
 
     }
