@@ -20,4 +20,20 @@ public class Task1 {
         }
         return sumOfMasses;
     }
+
+    public long addFuelForModule(long modul) {
+        long requiredFuel = fuelCounterUpper(modul);
+        if (requiredFuel <= 0) {
+            return 0;
+        }
+        return requiredFuel + addFuelForModule(requiredFuel);
+    }
+
+    public long sumFuelForAllModules(List<String> modules) {
+        long sumFeulForAllModules = 0L;
+        for (String modul : modules) {
+            sumFeulForAllModules = sumFeulForAllModules + addFuelForModule(Long.parseLong(modul));
+        }
+        return sumFeulForAllModules;
+    }
 }
