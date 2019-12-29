@@ -1,4 +1,4 @@
-package pl.pilz.adventofcode.edition2019.task1;
+package pl.pilz.adventofcode.edition2019.task2;
 
 import org.junit.Test;
 import pl.pilz.adventofcode.edition2019.task2.Task2;
