@@ -1,10 +1,9 @@
 package pl.pilz.adventofcode.edition2019.task3;
 
+import lombok.Data;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,109 +12,105 @@ import java.util.Map;
 @Component
 public class Task3 {
 
+    private static final Point STARTING_POINT = new Point(0, 0);
+    private static final String VERTICAL = "vertical";
+    private static final String HORIZONTAL = "horizontal";
+    private List<Point> commonPoints;
 
-    public int calculateNearestDistance(List<String> input1, List<String> input2) {
-        int nearestDistance = 0;
-        List<List> commonPointesList = new ArrayList<>();
-        List<List<Integer>> coordinates1 = determineCoordinates(input1);
-        List<List<Integer>> coordinates2 = determineCoordinates(input2);
+    public int calculateNearestDistance(List<String> wire1, List<String> wire2) {
+        commonPoints = new ArrayList<>();
+        List<Section> verticalSectionsWire1 = groupWireByDirection(determineCoordinates(wire1)).get(VERTICAL);
+        List<Section> horizontalSectionsWire1 = groupWireByDirection(determineCoordinates(wire1)).get(HORIZONTAL);
+        List<Section> verticalSectionsWire2 = groupWireByDirection(determineCoordinates(wire2)).get(VERTICAL);
+        List<Section> horizontalSectionsWire2 = groupWireByDirection(determineCoordinates(wire2)).get(HORIZONTAL);
 
-        Map<String, List<List<List<Integer>>>> mapRoadCoordinates1 = groupRoadByDirection(coordinates1);
-        Map<String, List<List<List<Integer>>>> mapRoadCoordinates2 = groupRoadByDirection(coordinates2);
-
-        List<List<List<Integer>>> verticalCoordinatesList1 = mapRoadCoordinates1.get("vertical");
-        List<List<List<Integer>>> horizontalCoordinatesList1 = mapRoadCoordinates1.get("horizontal");
-        List<List<List<Integer>>> verticalCoordinatesList2 = mapRoadCoordinates2.get("vertical");
-        List<List<List<Integer>>> horizontalCoordinatesList2 = mapRoadCoordinates2.get("horizontal");
-
-        for (List<List<Integer>> horizontalCoordinates1 : horizontalCoordinatesList1) {
-            for (List<List<Integer>> verticalCoordinates2 : verticalCoordinatesList2) {
-                if ((verticalCoordinates2.get(0).get(0) > horizontalCoordinates1.get(0).get(0) && verticalCoordinates2.get(1).get(0) < horizontalCoordinates1.get(0).get(0))
-                        || (verticalCoordinates2.get(0).get(0) > horizontalCoordinates1.get(0).get(0) && verticalCoordinates2.get(1).get(0) < horizontalCoordinates1.get(0).get(0))) {
-                    if ((horizontalCoordinates1.get(0).get(1) > verticalCoordinates2.get(0).get(1) && horizontalCoordinates1.get(1).get(1) < verticalCoordinates2.get(0).get(1))
-                            || horizontalCoordinates1.get(0).get(1) < verticalCoordinates2.get(0).get(1) && horizontalCoordinates1.get(1).get(1) > verticalCoordinates2.get(0).get(1)) {
-                        commonPointesList.add(Arrays.asList(verticalCoordinates2.get(0).get(1), horizontalCoordinates1.get(0).get(0)));
-                    }
-                }
-            }
-        }
-        for (List<List<Integer>> horizontalCoordinates2 : horizontalCoordinatesList2) {
-            for (List<List<Integer>> verticalCoordinates1 : verticalCoordinatesList1) {
-                if ((verticalCoordinates1.get(0).get(0) > horizontalCoordinates2.get(0).get(0) && verticalCoordinates1.get(1).get(0) < horizontalCoordinates2.get(0).get(0))
-                        || (verticalCoordinates1.get(0).get(0) > horizontalCoordinates2.get(0).get(0) && verticalCoordinates1.get(1).get(0) < horizontalCoordinates2.get(0).get(0))) {
-                    if ((horizontalCoordinates2.get(0).get(1) > verticalCoordinates1.get(0).get(1) && horizontalCoordinates2.get(1).get(1) < verticalCoordinates1.get(0).get(1))
-                            || horizontalCoordinates2.get(0).get(1) < verticalCoordinates1.get(0).get(1) && horizontalCoordinates2.get(1).get(1) > verticalCoordinates1.get(0).get(1)) {
-                        commonPointesList.add(Arrays.asList(verticalCoordinates1.get(0).get(1), horizontalCoordinates2.get(0).get(0)));
-                    }
-                }
-            }
-        }
-        List<Integer> sumPointers = new ArrayList<>();
-        for (List<Integer> pointers : commonPointesList) {
-            int sum = pointers.get(0) + pointers.get(1);
-            sumPointers.add(sum);
-        }
-
-        return Collections.min(sumPointers);
+        findCommonPoints(horizontalSectionsWire1, verticalSectionsWire2);
+        findCommonPoints(horizontalSectionsWire2, verticalSectionsWire1);
+        return commonPoints.stream().mapToInt(point -> point.getVertical() + point.getHorizontal()).min().orElseThrow();
     }
 
-    private Map<String, List<List<List<Integer>>>> groupRoadByDirection(List<List<Integer>> coordinates) {
-        Map<String, List<List<List<Integer>>>> coordinatesByDirection = new HashMap<>();
-        List<List<Integer>> verticalList = new ArrayList<>();
-        List<List<List<Integer>>> verticalRoad = new ArrayList<>();
-        List<List<Integer>>  horizontalList = new ArrayList<>();
-        List<List<List<Integer>>> horizontalRoad = new ArrayList<>();
+    private Map<String, List<Section>> groupWireByDirection(List<Point> points) {
+        Map<String, List<Section>> coordinatesByDirection = new HashMap<>();
+        List<Section> verticalWireSection = new ArrayList<>();
+        List<Section> horizontalWireSection = new ArrayList<>();
 
-        for (int i = 0; i < coordinates.size(); i++) {
+        for (int i = 0; i < points.size(); i++) {
             if (i == 0) {
                 continue;
             }
-            if (coordinates.get(i).get(0) == coordinates.get(i - 1).get(0)) {
-                horizontalList.add(Arrays.asList(coordinates.get(i - 1).get(0), coordinates.get(i -1).get(1)));
-                horizontalList.add(Arrays.asList(coordinates.get(i).get(0), coordinates.get(i).get(1)));
-                horizontalRoad.add(horizontalList);
-                horizontalList = new ArrayList<>();
+            if (points.get(i).getVertical() == points.get(i - 1).getVertical()) {
+                horizontalWireSection.add(new Section(new Point(points.get(i - 1).getVertical(), points.get(i - 1).getHorizontal()), new Point(points.get(i).getVertical(), points.get(i).getHorizontal())));
             } else {
-                verticalList.add(Arrays.asList(coordinates.get(i - 1).get(0), coordinates.get(i -1).get(1)));
-                verticalList.add(Arrays.asList(coordinates.get(i).get(0), coordinates.get(i).get(1)));
-                verticalRoad.add(verticalList);
-                verticalList = new ArrayList<>();
+                verticalWireSection.add(new Section(new Point(points.get(i - 1).getVertical(), points.get(i - 1).getHorizontal()), new Point(points.get(i).getVertical(), points.get(i).getHorizontal())));
             }
         }
 
-        coordinatesByDirection.put("vertical", verticalRoad);
-        coordinatesByDirection.put("horizontal", horizontalRoad);
+        coordinatesByDirection.put(VERTICAL, verticalWireSection);
+        coordinatesByDirection.put(HORIZONTAL, horizontalWireSection);
 
         return coordinatesByDirection;
     }
 
-    private List<List<Integer>> determineCoordinates(List<String> input) {
-        List<List<Integer>> coordinates = new ArrayList<>();
-        int startPoint = 0;
-        int vertical = startPoint;
-        int horizontal = startPoint;
-        int value = 0;
-        List<Integer> coordinate = new ArrayList<>();
+    private List<Point> determineCoordinates(List<String> input) {
+        List<Point> coordinates = new ArrayList<>();
+        int vertical = 0;
+        int horizontal = 0;
+        int value;
 
-        coordinates.add(Arrays.asList(startPoint, startPoint));
+        coordinates.add(STARTING_POINT);
 
-        for (int i = 0; i < input.size(); i++) {
-            if (input.get(i).startsWith("D") || input.get(i).startsWith("L")) {
-                value = Integer.parseInt(input.get(i).substring(1)) * (-1);
-            } else {
-                value = Integer.parseInt(input.get(i).substring(1));
+        for (String direction : input) {
+            value = Integer.parseInt(direction.substring(1));
+            if (direction.startsWith("D")) {
+                vertical -= value;
             }
-            if (input.get(i).startsWith("R") || input.get(i).startsWith("L")) {
-                horizontal = horizontal + value;
+            if (direction.startsWith("L")) {
+                horizontal -= value;
             }
-            if (input.get(i).startsWith("U") || input.get(i).startsWith("D")) {
-                vertical = vertical + value;
+            if (direction.startsWith("R")) {
+                horizontal += value;
             }
-            coordinate.add(0, vertical);
-            coordinate.add(1, horizontal);
-            coordinates.add(coordinate);
-            coordinate = new ArrayList<>();
+            if (direction.startsWith("U")) {
+                vertical += value;
+            }
+            coordinates.add(new Point(vertical, horizontal));
         }
         return coordinates;
+    }
+
+    private void findCommonPoints(List<Section> horizontalSectionsWire1, List<Section> verticalSectionsWire2) {
+        for (Section horizontal : horizontalSectionsWire1) {
+            for (Section vertical : verticalSectionsWire2) {
+                if (vertical.getEnd1().getVertical() > horizontal.getEnd1().getVertical() && vertical.getEnd2().getVertical() < horizontal.getEnd1().getVertical() &&
+                        (horizontal.getEnd1().getHorizontal() > vertical.getEnd1().getHorizontal() && horizontal.getEnd2().getHorizontal() < vertical.getEnd1().getHorizontal()
+                                || horizontal.getEnd1().getHorizontal() < vertical.getEnd1().getHorizontal() && horizontal.getEnd2().getHorizontal() > vertical.getEnd1().getHorizontal())) {
+                    commonPoints.add(new Point(vertical.getEnd1().getHorizontal(), horizontal.getEnd1().getVertical()));
+                }
+            }
+        }
+    }
+
+    @Data
+    private static class Section {
+
+        private Point end1;
+        private Point end2;
+
+        public Section(Point end1, Point end2) {
+            this.end1 = end1;
+            this.end2 = end2;
+        }
+    }
+
+    @Data
+    private static class Point {
+
+        private int vertical;
+        private int horizontal;
+
+        public Point(int vertical, int horizontal) {
+            this.vertical = vertical;
+            this.horizontal = horizontal;
+        }
     }
 }
